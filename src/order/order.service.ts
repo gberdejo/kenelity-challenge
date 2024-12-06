@@ -1,26 +1,69 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { OrderRepository } from './order.repository';
+import { ProductRepository } from '../product/product.repository';
 
 @Injectable()
 export class OrderService {
-  create(createOrderDto: CreateOrderDto) {
-    return 'This action adds a new order';
+  constructor(
+    private readonly orderRepository: OrderRepository,
+    private readonly productRepository: ProductRepository,
+  ) {}
+
+  async create(createOrderDto: CreateOrderDto) {
+    Logger.log('[OrderService] createOrderDto', createOrderDto);
+
+    const products = await this.productRepository.findAllBySkus(
+      createOrderDto.products,
+    );
+
+    Logger.log('[OrderService] products', products);
+
+    const subtotal = products.reduce((acc, product) => acc + product.price, 0);
+
+    const discount = createOrderDto.discount || 0;
+    const iva = (subtotal - discount) * 0.18; // IVA in Peru is 18%
+    const total = subtotal - discount + iva;
+
+    return this.orderRepository.create({
+      products,
+      subtotal,
+      discount,
+      iva,
+      total,
+      dni: createOrderDto.dni,
+      email: createOrderDto.email,
+      address: createOrderDto.address,
+      phone: createOrderDto.phone,
+      name: createOrderDto.name,
+    });
   }
 
-  findAll() {
-    return `This action returns all order`;
+  async findAll() {
+    return this.orderRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
+  async getTotalSalesLastMonth(): Promise<any> {
+    const orders = await this.orderRepository.findOrdersFromLastMonth();
+    console.log(orders);
+    const totalSales = orders.reduce((total, order) => total + order.total, 0);
+
+    return {
+      totalSales,
+      numberOfOrders: orders.length,
+    };
   }
 
-  update(id: number, updateOrderDto: UpdateOrderDto) {
-    return `This action updates a #${id} order`;
+  async findOne(id: string) {
+    return this.orderRepository.findOne(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} order`;
+  async update(id: string, updateOrderDto: UpdateOrderDto) {
+    return this.orderRepository.update(id, updateOrderDto);
+  }
+
+  async remove(id: string) {
+    return this.orderRepository.delete(id);
   }
 }
