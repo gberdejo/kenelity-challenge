@@ -1,7 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { Model, Schema as MongooseSchema } from 'mongoose';
 import { Order } from './schema/order.schema';
 import { CreateOrder } from './order.interface';
 
@@ -12,7 +11,7 @@ export class OrderRepository {
   async create(createOrder: CreateOrder): Promise<Order> {
     const createdOrder = new this.orderModel(createOrder);
 
-    Logger.log('[OrderRepository] create', createOrder);
+    console.log('[OrderRepository] create', createOrder);
 
     return createdOrder.save();
   }
@@ -23,7 +22,7 @@ export class OrderRepository {
 
   async findOne(id: string): Promise<Order> {
     return this.orderModel
-      .findById(new Types.ObjectId(id))
+      .findById(new MongooseSchema.ObjectId(id))
       .populate('products')
       .exec();
   }
@@ -39,13 +38,25 @@ export class OrderRepository {
       .exec();
   }
 
-  async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
+  async update(id: string, updateOrderDto: CreateOrder): Promise<Order> {
     return this.orderModel
-      .findByIdAndUpdate(new Types.ObjectId(id), updateOrderDto, { new: true })
+      .findByIdAndUpdate(new MongooseSchema.ObjectId(id), updateOrderDto, {
+        new: true,
+      })
       .exec();
   }
 
   async delete(id: string): Promise<Order> {
-    return this.orderModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
+    return this.orderModel
+      .findByIdAndDelete(new MongooseSchema.ObjectId(id))
+      .exec();
+  }
+
+  async findOrderWithHighestTotal(): Promise<Order> {
+    return this.orderModel
+      .findOne()
+      .sort({ total: -1 })
+      .populate('products')
+      .exec();
   }
 }

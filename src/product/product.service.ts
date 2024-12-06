@@ -1,7 +1,6 @@
 import {
   ConflictException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -13,7 +12,7 @@ export class ProductService {
   constructor(private readonly productRepository: ProductRepository) {}
 
   async create(createProductDto: CreateProductDto) {
-    Logger.log('[ProductService] createProductDto', createProductDto);
+    console.log('[ProductService] createProductDto', createProductDto);
     const sku = await this.findOne(createProductDto.sku);
 
     if (sku) {
@@ -32,8 +31,8 @@ export class ProductService {
   }
 
   async update(sku: string, updateProductDto: UpdateProductDto) {
-    Logger.log('[ProductService] sku', sku);
-    Logger.log('[ProductService] updateProductDto', updateProductDto);
+    console.log('[ProductService] sku', sku);
+    console.log('[ProductService] updateProductDto', updateProductDto);
 
     const skuExists = await this.findOne(sku);
 

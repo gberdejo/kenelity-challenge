@@ -1,8 +1,13 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderRepository } from './order.repository';
 import { ProductRepository } from '../product/product.repository';
+import { Product } from 'src/product/schema/product.schema';
 
 @Injectable()
 export class OrderService {
@@ -11,29 +16,46 @@ export class OrderService {
     private readonly productRepository: ProductRepository,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto) {
-    Logger.log('[OrderService] createOrderDto', createOrderDto);
+  private uniqueIds(list: any[]) {
+    const unique = new Set(list);
+    return unique.size === list.length;
+  }
 
-    const products = await this.productRepository.findAllBySkus(
-      createOrderDto.products,
+  async create(createOrderDto: CreateOrderDto) {
+    console.log('[OrderService] createOrderDto', createOrderDto);
+
+    const listProducts: string[] = createOrderDto.products.map(
+      (product) => product.sku,
     );
+
+    if (!this.uniqueIds(listProducts)) {
+      throw new BadRequestException('Products must be unique');
+    }
+
+    const products: Product[] =
+      await this.productRepository.findAllBySkus(listProducts);
 
     if (products.length !== createOrderDto.products.length) {
       throw new NotFoundException('Product not found');
     }
 
-    Logger.log('[OrderService] products', products);
+    console.log('[OrderService] products', products);
+    const listProductCombined = createOrderDto.products.map((product) => ({
+      ...product,
+      ...products.find((p) => p.sku === product.sku).toJSON(),
+    }));
 
-    const subtotal = products.reduce((acc, product) => acc + product.price, 0);
+    console.log('[OrderService] listProductCombined', listProductCombined);
 
-    const discount = createOrderDto.discount || 0;
-    const iva = (subtotal - discount) * 0.18; // IVA in Peru is 18%
-    const total = subtotal - discount + iva;
+    const { subtotal, iva, total } = this.calculateTotal(
+      listProductCombined,
+      Number(createOrderDto.discount),
+    );
 
     return this.orderRepository.create({
       products,
       subtotal,
-      discount,
+      discount: createOrderDto.discount,
       iva,
       total,
       dni: createOrderDto.dni,
@@ -44,6 +66,23 @@ export class OrderService {
     });
   }
 
+  calculateTotal(products: any[], discount: number) {
+    console.log('[OrderService] products', products);
+    console.log('[OrderService] discount', discount);
+    const sum = products.reduce(
+      (acc, product) => acc + product.price * product.quantity,
+      0,
+    );
+    const subtotal = sum - discount;
+    const iva = Math.round(subtotal * 0.18);
+    const total = subtotal - iva;
+    return {
+      subtotal,
+      iva,
+      total,
+    };
+  }
+
   async findAll() {
     return this.orderRepository.findAll();
   }
@@ -51,6 +90,7 @@ export class OrderService {
   async getTotalSalesLastMonth(): Promise<any> {
     const orders = await this.orderRepository.findOrdersFromLastMonth();
     console.log(orders);
+
     const totalSales = orders.reduce((total, order) => total + order.total, 0);
 
     return {
@@ -64,7 +104,49 @@ export class OrderService {
   }
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
-    return this.orderRepository.update(id, updateOrderDto);
+    console.log('[OrderService] updateOrderDto', updateOrderDto);
+
+    const listProducts: string[] = updateOrderDto.products.map(
+      (product) => product.sku,
+    );
+
+    if (!this.uniqueIds(listProducts)) {
+      throw new BadRequestException('Products must be unique');
+    }
+
+    const products: Product[] =
+      await this.productRepository.findAllBySkus(listProducts);
+
+    if (products.length !== updateOrderDto.products.length) {
+      throw new NotFoundException('Product not found');
+    }
+
+    console.log('[OrderService] products', products);
+
+    const listProductCombined = updateOrderDto.products.map((product) => ({
+      ...product,
+      ...products.find((p) => p.sku === product.sku),
+    }));
+
+    console.log('[OrderService] listProductCombined', listProductCombined);
+
+    const { subtotal, iva, total } = this.calculateTotal(
+      listProductCombined,
+      updateOrderDto.discount,
+    );
+
+    return this.orderRepository.update(id, {
+      products,
+      subtotal,
+      discount: updateOrderDto.discount,
+      iva,
+      total,
+      dni: updateOrderDto.dni,
+      email: updateOrderDto.email,
+      address: updateOrderDto.address,
+      phone: updateOrderDto.phone,
+      name: updateOrderDto.name,
+    });
   }
 
   async remove(id: string) {
@@ -75,5 +157,9 @@ export class OrderService {
     }
 
     return this.orderRepository.delete(id);
+  }
+
+  async findOrderWithHighestTotal() {
+    return this.orderRepository.findOrderWithHighestTotal();
   }
 }

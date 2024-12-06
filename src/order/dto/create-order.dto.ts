@@ -7,19 +7,30 @@ import {
   IsNotEmpty,
   IsNumber,
   IsString,
-  Max,
 } from 'class-validator';
+export class ItemOrderDto {
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @IsNotEmpty()
+  sku: string;
 
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  @IsInt()
+  quantity: number;
+}
 export class CreateOrderDto {
-  @ApiProperty({ type: [String], example: ['123456'] })
+  @ApiProperty({
+    type: [ItemOrderDto],
+    example: [{ sku: '123456', quantity: 1 }],
+  })
   @IsArray()
   @ArrayNotEmpty()
-  products: string[];
+  products: ItemOrderDto[];
 
   @ApiProperty({ example: '75652677' })
   @IsNumber()
   @IsInt()
-  @Max(7)
   dni: number;
 
   @ApiProperty({ example: 'Gabriel Berdejo' })
@@ -30,7 +41,6 @@ export class CreateOrderDto {
   @ApiProperty({ example: '987654321' })
   @IsNumber()
   @IsInt()
-  @Max(9)
   phone: number;
 
   @ApiProperty({ example: '123 Main St' })

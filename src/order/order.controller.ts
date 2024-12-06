@@ -43,6 +43,7 @@ export class OrderController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @UsePipes(new ValidationPipe({ transform: true }))
   create(@Body() createOrderDto: CreateOrderDto) {
+    console.log('[OrderController] createOrderDto', createOrderDto);
     return this.orderService.create(createOrderDto);
   }
 
@@ -71,6 +72,19 @@ export class OrderController {
   })
   async getTotalSalesLastMonth() {
     return this.orderService.getTotalSalesLastMonth();
+  }
+
+  @Get('orderWithHighestTotal')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the order with the highest total' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return the order with the highest total.',
+  })
+  async getOrderWithHighestTotal() {
+    return await this.orderService.findOrderWithHighestTotal();
   }
 
   @Get(':id')

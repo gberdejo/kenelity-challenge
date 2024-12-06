@@ -34,6 +34,9 @@ import { validate } from 'class-validator';
 import { FindOneParams } from './dto/find-one.dto';
 import { Response } from 'express';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { multerConfig } from 'src/config/multer.config';
+import { join } from 'path';
+import { createReadStream } from 'fs';
 
 @ApiTags('products')
 @Controller('product')
@@ -53,7 +56,7 @@ export class ProductController {
   @ApiResponse({ status: 409, description: 'Conflict.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', multerConfig))
   async create(
     @Body() createProductDto: CreateProductDto,
     @UploadedFile() file: Express.Multer.File,
@@ -73,8 +76,9 @@ export class ProductController {
       });
     }
 
-    const base64Image = file.buffer.toString('base64');
-    createProductDto.image = base64Image;
+    // const base64Image = file.buffer.toString('base64');
+    // createProductDto.image = base64Image;
+    createProductDto.image = file.path;
     return this.productService.create(createProductDto);
   }
 
@@ -94,14 +98,21 @@ export class ProductController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async getImage(@Param() params: FindOneParams, @Res() res: Response) {
     try {
-      const imageBase64 = await this.productService.getImageBySku(params.sku);
+      const imagePath = await this.productService.getImageBySku(params.sku);
+      const fullPath = join(process.cwd(), imagePath);
 
-      const imgBuffer = Buffer.from(imageBase64, 'base64');
-      res.writeHead(HttpStatus.OK, {
-        'Content-Type': 'image/jpeg',
-        'Content-Length': imgBuffer.length,
+      console.log('[ProductController] fullPath', fullPath);
+
+      const stream = createReadStream(fullPath);
+
+      stream.on('open', () => {
+        res.setHeader('Content-Type', 'image/jpeg');
+        stream.pipe(res);
       });
-      res.end(imgBuffer);
+
+      stream.on('error', () => {
+        res.status(HttpStatus.NOT_FOUND).json({ message: 'Image not found' });
+      });
     } catch (error) {
       res.status(HttpStatus.NOT_FOUND).json({ message: error.message });
     }

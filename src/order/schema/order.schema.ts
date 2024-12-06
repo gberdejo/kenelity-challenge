@@ -1,12 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Product } from 'src/product/schema/product.schema';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Schema()
 export class Order extends Document {
   @ApiProperty({ type: [Product], required: true, example: [] })
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }], required: true })
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Product' }],
+    required: true,
+  })
   products: Product[];
 
   @ApiProperty({ type: Number, required: true, example: '12345678' })
