@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderRepository } from './order.repository';
@@ -17,6 +17,10 @@ export class OrderService {
     const products = await this.productRepository.findAllBySkus(
       createOrderDto.products,
     );
+
+    if (products.length !== createOrderDto.products.length) {
+      throw new NotFoundException('Product not found');
+    }
 
     Logger.log('[OrderService] products', products);
 
@@ -64,6 +68,12 @@ export class OrderService {
   }
 
   async remove(id: string) {
+    const order = await this.orderRepository.findOne(id);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
     return this.orderRepository.delete(id);
   }
 }

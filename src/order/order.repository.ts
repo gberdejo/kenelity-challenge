@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './schema/order.schema';
 import { CreateOrder } from './order.interface';
@@ -22,7 +22,10 @@ export class OrderRepository {
   }
 
   async findOne(id: string): Promise<Order> {
-    return this.orderModel.findById(id).populate('products').exec();
+    return this.orderModel
+      .findById(new Types.ObjectId(id))
+      .populate('products')
+      .exec();
   }
 
   async findOrdersFromLastMonth(): Promise<Order[]> {
@@ -38,11 +41,11 @@ export class OrderRepository {
 
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
     return this.orderModel
-      .findByIdAndUpdate(id, updateOrderDto, { new: true })
+      .findByIdAndUpdate(new Types.ObjectId(id), updateOrderDto, { new: true })
       .exec();
   }
 
   async delete(id: string): Promise<Order> {
-    return this.orderModel.findByIdAndDelete(id).exec();
+    return this.orderModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
   }
 }

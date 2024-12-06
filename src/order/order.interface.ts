@@ -2,9 +2,9 @@ import { Product } from 'src/product/schema/product.schema';
 
 export interface CreateOrder {
   products: Product[];
-  dni: string;
+  dni: number;
   name: string;
-  phone: string;
+  phone: number;
   address: string;
   email: string;
   discount: number;

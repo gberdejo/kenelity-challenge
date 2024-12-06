@@ -9,17 +9,17 @@ export class Order extends Document {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }], required: true })
   products: Product[];
 
-  @ApiProperty({ type: String, required: true, example: '12345678' })
+  @ApiProperty({ type: Number, required: true, example: '12345678' })
   @Prop({ required: true })
-  dni: string;
+  dni: number;
 
   @ApiProperty({ type: String, required: true, example: 'John Doe' })
   @Prop({ required: true })
   name: string;
 
-  @ApiProperty({ type: String, required: true, example: '987654321' })
+  @ApiProperty({ type: Number, required: true, example: '987654321' })
   @Prop({ required: true })
-  phone: string;
+  phone: number;
 
   @ApiProperty({ type: String, required: true, example: '123 Main St' })
   @Prop({ required: true })
